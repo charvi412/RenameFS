@@ -1,0 +1,314 @@
+<%- include ("includes/header", {
+   "title": "My Uploads"
+}) %>
+
+<div class="container" style="margin-top: 50px; margin-bottom: 50px;">
+    <%- include ("includes/ResponseAlert", {
+        "request": request
+    }) %>
+
+    <div class="row">
+        <div class="col-md-4">
+            <h1>
+                <% if (folderName == "") { %>
+                    My Uploads
+                    <% } else { %>
+                    <%= folderName %>
+                    <% } %>
+                    </h1>
+        </div>
+
+        <% if (createdAt != "") { %>
+            <div class="col-md-4">
+                Created at:
+                <%
+                createdAt=new Date(createdAt);
+                createdAt=createdAt.getDate()+" "+months[createdAt.
+                getMonth()]+", "+createdAt.getFullYear()+ " "+
+                createdAt.getHours()+ ":" +createdAt.getMinutes()+ ":"
+                + createdAt.getSeconds();
+        %>
+    
+        <%= createdAt %>
+        </div>
+        <% } %>
+
+
+        <div class="col-md-4">
+            <% if ( _id !=null) {
+                %>
+                <div class="dropdown" style="display:initial">
+                    <button type="button"
+                    data-toggle="dropdown"
+                    aria-haspopup="true" aria-expanded="false"
+                    class="btn btn-primary">More
+                    <span class="caret"></span>
+              </button>
+                    
+              <ul class="dropdown-menu">
+                <li>
+                    <button type="button"
+                    class="btn btn-default btn-block"
+                    onclick="renameFolder(this);"
+                    data-dismiss="modal"
+                    data-id="<%= _id %>"
+                    data-name="<%= folderName %>">
+                    Rename
+                </button>
+                </li>
+
+
+
+
+                <li>
+                    <form method="POST" action="<%= request.mainUrL%>/DeleteDirectory" 
+                        onsubmit="return confirm('Are you sure you want to delete the folder and all files in it?');" >
+                        <input type="hidden" name="_id" value="<%= _id %>" required />
+                        <input type="submit" value="Delete" class="btn btn-danger btn-block" />
+
+                    </form>
+                </li>
+              </ul>
+            </div>
+
+            <% } %>
+        <!-- <div class="col-md-4"> -->
+            <a href="javascript:void(0);" class="btn btn-primary" onclick="selectFileForUpload();">Upload</a>
+            <button type="button"
+            class="btn btn-primary"
+            onclick="onclickCreateFolder();">Create Folder</button>
+        </div>
+    </div>
+
+    <div class="row">
+        <%
+        uploaded.forEach(function (singleFile) {
+            var fileSize = 0;
+        %>
+        <div class="col-md-4" style="margin-top: 30px;">
+            <div class="card">
+                <div class="card-body" style="font-size:100px; text-align: center; height: 300px;">
+                    <% if (singleFile.type == "folder") { %>
+                        <i class="fa fa-folder-open-o"></i>
+                    <% } else { %>
+                        <i class="fa fa-file-text-o"></i>
+                    <% } %>
+                </div>
+                <div class="card-footer">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <% if (singleFile.type == "folder") {
+                                fileSize = getFolderSize(singleFile.files);
+                                fileSize = formatBytes(fileSize);
+                            %>
+                                <h3>
+                                    <a href="<%= request.mainURL + '/MyUploads/' + singleFile._id %>">
+                                        <%= singleFile.folderName.substring(0,10) %>
+                                        <%= (singleFile.folderName.length > 10) ? "..." : "" %>
+                                    </a>
+                                </h3>
+                            <% } else {
+                                fileSize = formatBytes(singleFile.size);
+                            %>
+                                <h3>
+                                    <a href="javascript:void(0);"
+                                    onclick="viewFile(this);"
+                                    data-id="<%= singleFile._id %>"
+                                    data-name="<%= singleFile.name %>"
+                                    data-type="<%= singleFile.type %>"
+                                    data-created-at="<%= singleFile.createdAt %>">
+                                    <%= singleFile.name.substring(0, 10) %>
+                                    <%= (singleFile.name.length > 10) ? "..." : "" %>
+                                </a>
+                                </h3>
+                            <% } %>
+                        </div>
+                        <div class="col-md-4">
+                            <p style="position:relative; top:10px;">
+                                <%= fileSize %>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <% }) %>
+    </div>
+
+
+</div>
+
+<form method="POST" action="<%= request.mainURL %>/UploadFile" enctype="multipart/form-data" id="form-upload-file">
+    <input type="hidden" name="_id" value="" />
+    <input type="file" name="file" id="input-file-upload" style="display: none;" onchange="confirmUpload();" required />
+</form>
+
+<form method="POST" action="<%= request.mainURL %>/CreateFolder" id="form-create-folder">
+    <input type="hidden" name="name" required />
+    <input type="hidden" name="_id" value="<%= _id %>" />
+</form>
+
+<!-- Modal -->
+<div class="modal fade" id="viewFileModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+
+                <button type="button" class="btn btn-warning" onclick="
+                  renameFile(this);"
+                  data-dismiss="modal"
+                  data-id=""
+                  data-name=""
+                  id="button-rename-file">Rename</button>
+                  
+                <form method="POST" action="<%= request.mainURL %>/ShareViaLink" id="form-share-via-link" style="display: contents;">
+                    <input type="hidden" name="_id" required />
+                </form>
+
+                <button type="button" class="btn btn-primary" onclick="shareViaLink();">
+                    Share via link
+                </button>
+
+                <script>
+                    function shareViaLink() {
+                        if (confirm("Generate shareable link ?")) {
+                            document.getElementById("form-share-via-link").submit();
+                        }
+                    }
+                </script>
+
+                <form method="POST" action="<%= request.mainURL %>/DeleteFile"
+                    id="form-delete-file">
+                    <input type="hidden" name="_id" required />
+
+                    <button type="button" class="btn btn-danger"
+                        onclick="confirmDeleteFile(this);">
+                        Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form  method="POST" action="<%= request.mainURL %>/RenameFolder" id="form-rename-folder">
+    <input type="hidden" name="_id" required/>
+    <input type="hidden" name="name" required/>
+</form>
+
+<form  method="POST" action="<%= request.mainURL %>/RenameFile" id="form-rename-file">
+    <input type="hidden" name="_id" required/>
+    <input type="hidden" name="name" required/>
+</form>
+
+
+
+
+
+
+
+
+
+
+
+<script>
+
+    function renameFile(self){
+        const _id =self.getAttribute("data-id");
+        const name = self.getAttribute("data-name");
+
+        var newName = prompt("Enter new name",name);
+        if(newName != null){
+            document.getElementById("form-rename-file")._id.value = _id;
+            document.getElementById("form-rename-file").name.value=newName;
+
+            document.getElementById("form-rename-file").submit();
+        }
+    }
+
+    function renameFolder(self){
+        const _id =self.getAttribute("data-id");
+        const name = self.getAttribute("data-name");
+
+        var newName = prompt("Enter new name",name);
+        if(newName != null){
+            document.getElementById("form-rename-folder")._id.value = _id;
+            document.getElementById("form-rename-folder").name.value=newName;
+
+            document.getElementById("form-rename-folder").submit();
+        }
+}
+
+    
+    function onclickCreateFolder() {
+      var folderName = prompt("Please enter folder name", "");
+
+      if(folderName!=null){
+      
+        document.getElementById("form-create-folder").name.value=
+           folderName;
+      
+           document.getElementById("form-create-folder").submit();
+     }
+    }
+
+
+    function selectFileForUpload() {
+        document.getElementById("input-file-upload").click();
+    }
+
+    function confirmUpload() {
+        if(confirm("Upload the selected file to the server?")){
+            document.getElementById("form-upload-file").submit();
+             // swal({
+        //     title: "Are you sure?",
+        //     text: "Upload the selected file to the server ?",
+        //     icon: "warning",
+        //     buttons: true,
+        //     dangerMode: true,
+        // })
+        //     .then(function(isOkay) {
+        //         if (isOkay) {
+        //             document.getElementById("form-upload-file").submit();
+        //         }
+        //     });
+        }
+    }
+
+       
+    
+
+    function viewFile(self) {
+        var _id = self.getAttribute("data-id");
+        var name = self.getAttribute("data-name");
+        var type = self.getAttribute("data-type");
+
+        document.querySelector("#viewFileModal .modal-title").innerHTML = name;
+
+        var modalBodyHtml = "";
+        modalBodyHtml += "<button type='button' class='btn btn-success' onclick='downloadFile(this);' data-id='" + _id + "'>Download</button>";
+        document.querySelector("#viewFileModal .modal-body").innerHTML = modalBodyHtml;
+        $("#viewFileModal").modal("show");
+
+        document.getElementById("form-delete-file")._id.value = _id;
+        document.getElementById("form-share-via-link")._id.value = _id;
+
+        document.getElementById("button-rename-file").setAttribute("data-id",_id);
+        document.getElementById("button-rename-file").setAttribute("data-name",name);
+
+
+
+    }
+</script>
+
+<%- include ("includes/footer") %>
